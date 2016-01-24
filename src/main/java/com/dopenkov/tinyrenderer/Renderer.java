@@ -4,6 +4,7 @@ import com.dopenkov.tinyrenderer.vectormath.VectorF;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.util.Arrays;
 
 import static java.lang.Math.abs;
 
@@ -25,7 +26,7 @@ public class Renderer {
         lookat = new VectorF(0, 0, 0);
         cameraLocation = new VectorF(0, 0, 5);
         cameraUp = new VectorF(0, 1, 0);
-        lightDirection = new VectorF(1, 3, 1);
+        lightDirection = new VectorF(0, 0, -1);
     }
 
     public BufferedImage getRenderedImage() {
@@ -36,53 +37,46 @@ public class Renderer {
         if (renderedImage == null || renderedImage.getWidth() != outWidth || renderedImage.getHeight() != outHeight) {
             renderedImage = new BufferedImage(outWidth, outHeight, BufferedImage.TYPE_INT_RGB);
         }
+        lightDirection = lightDirection.normalize();
         final VectorF one = new VectorF(1, 1, 0);
-        Color[] colors = {Color.RED, Color.GREEN, Color.BLUE};
         for (Model.Vertex[] face : model.getFaces()) {
-            for (int i = 0; i < face.length; i++) {
-                Model.Vertex v = face[i];
-                Model.Vertex next = face[(i + 1) % face.length];
-                line(v.location.add(one).scale(outWidth / 2f), next.location.add(one).scale(outWidth / 2f), colors[i]);
+            VectorF faceNormal = face[2].location.sub(face[0].location).cross(face[1].location.sub(face[0].location)).normalize();
+            float intensity = faceNormal.dot(lightDirection);
+            if (intensity <= 0) {
+                continue;
             }
+            Color color = new Color(Math.round(255 * intensity), Math.round(255 * intensity), Math.round(255 * intensity));
+            triangle(Arrays.stream(face).map(vertex -> vertex.location.add(one).scale(outWidth / 2f)).toArray(VectorF[]::new), color);
         }
     }
 
-    public void line(VectorF p0, VectorF p1, Color color) {
-        p0 = p0.round();
-        p1 = p1.round();
-        int deltaX = (int) abs(p1.getX() - p0.getX());
-        int deltaY = (int) abs(p1.getY() - p0.getY());
-        boolean steep = deltaX < deltaY;
-        int x0, y0, x1, y1;
-        if (steep) {
-            p0 = p0.swapXY();
-            p1 = p1.swapXY();
-            int tmp = deltaX;
-            deltaX = deltaY;
-            deltaY = tmp;
+    VectorF barycentric(VectorF A, VectorF B, VectorF C, VectorF P) {
+        VectorF s0 = new VectorF(C.getX() - A.getX(), B.getX() - A.getX(), A.getX() - P.getX());
+        VectorF s1 = new VectorF(C.getY() - A.getY(), B.getY() - A.getY(), A.getY() - P.getY());
+
+        VectorF u = s0.cross(s1);
+        if (abs(u.getZ()) > .01) {
+            // If z component is zero then triangle ABC is degenerate
+            return new VectorF(1.f - (u.getX() + u.getY()) / u.getZ(), u.getY() / u.getZ(), u.getX() / u.getZ());
         }
-        if (p0.getX() > p1.getX()) {
-            VectorF tmp = p0;
-            p0 = p1;
-            p1 = tmp;
-        }
-        x0 = (int) p0.getX();
-        y0 = (int) p0.getY();
-        x1 = (int) p1.getX();
-        y1 = (int) p1.getY();
-        int stepY = y1 > y0 ? 1 : -1;
-        int error = 0;
-        int y = y0;
-        for (int x = x0; x <= x1; x++) {
-            if (steep) {
-                setPixel(y, x, color);
-            } else {
+        // in this case generate negative coordinates, it will be thrown away by the rasterizator
+        return new VectorF(-1, 1, 1);
+    }
+
+    void triangle(VectorF points[], Color color) {
+        VectorF[] pts = Arrays.stream(points).map(VectorF::round).toArray(VectorF[]::new);
+        Arrays.sort(pts, (v1, v2) -> v1.getX() < v2.getX() ? -1 : v1.getX() == v2.getX() ? 0 : 1);
+        int minX = (int) pts[0].getX();
+        int maxX = (int) pts[2].getX();
+        Arrays.sort(pts, (v1, v2) -> v1.getY() < v2.getY() ? -1 : v1.getY() == v2.getY() ? 0 : 1);
+        int minY = (int) pts[0].getY();
+        int maxY = (int) pts[2].getY();
+        for (int x = minX; x <= maxX; x++) {
+            for (int y = minY; y <= maxY; y++) {
+                VectorF P = new VectorF(x, y);
+                VectorF c = barycentric(pts[0], pts[1], pts[2], P);
+                if (c.getX() < 0 || c.getY() < 0 || c.getZ() < 0) continue;
                 setPixel(x, y, color);
-            }
-            error += deltaY;
-            if (2 * error >= deltaX) {
-                y += stepY;
-                error -= deltaX;
             }
         }
     }

@@ -3,6 +3,8 @@ package com.dopenkov.tinyrenderer.vectormath;
 import java.util.Arrays;
 import java.util.function.BiFunction;
 
+import static java.lang.Math.sqrt;
+
 /**
  * @author <a href="mailto:dimaopen@gmail.com">Dmitry Openkov</a>
  *         Created 19.01.16.
@@ -68,17 +70,40 @@ public class VectorF {
         return map((component, num) -> component * scalar);
     }
 
-    private VectorF map(BiFunction<Float, Integer, Float> func) {
-        float[] modified = new float[components.length];
-        for (int i = 0; i < components.length; i++) {
-            float component = components[i];
-            modified[i] = func.apply(component, i);
-        }
-        return new VectorF(modified);
+    public float length() {
+        return (float) sqrt(lengthSQ());
+    }
+
+    public float lengthSQ() {
+        VectorF mul = map((component, num) -> component * component);
+        return sumComponents(mul);
+    }
+
+    public VectorF normalize() {
+        final float lenSQ = this.lengthSQ();
+        if (lenSQ == 0f || lenSQ == 1f) return this;
+        return this.scale(1f / (float) sqrt(lenSQ));
     }
 
     public VectorF add(VectorF v) {
         return map((component, num) -> component + v.getDimension(num));
+    }
+
+    public VectorF sub(VectorF v) {
+        return map((component, num) -> component - v.getDimension(num));
+    }
+
+    public float dot(VectorF v) {
+        VectorF mul = map((component, num) -> component * v.getDimension(num));
+        return sumComponents(mul);
+    }
+
+    private float sumComponents(VectorF mul) {
+        float sum = 0;
+        for (int i = 0; i < mul.components.length; i++) {
+            sum += mul.components[i];
+        }
+        return sum;
     }
 
     public VectorF cross(VectorF v) {
@@ -101,6 +126,15 @@ public class VectorF {
         float tmp = modified[0];
         modified[0] = modified[1];
         modified[1] = tmp;
+        return new VectorF(modified);
+    }
+
+    private VectorF map(BiFunction<Float, Integer, Float> func) {
+        float[] modified = new float[components.length];
+        for (int i = 0; i < components.length; i++) {
+            float component = components[i];
+            modified[i] = func.apply(component, i);
+        }
         return new VectorF(modified);
     }
 
