@@ -19,8 +19,11 @@ public class Vector3i {
         this(x, y, 0);
     }
     
-    public Vector3i(Vector3 v) {
-        this(((int) (v.getX() + .5f)), ((int) (v.getY() + .5f)), ((int) (v.getZ() + .5f)));
+    public Vector3i(VectorF v) {
+        v = v.round();
+        this.x = (int) v.getX();
+        this.y = (int) v.getY();
+        this.z = (int) v.getZ();
     }
 
     public int getX() {

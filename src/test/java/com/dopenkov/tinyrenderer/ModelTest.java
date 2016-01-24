@@ -1,6 +1,6 @@
 package com.dopenkov.tinyrenderer;
 
-import com.dopenkov.tinyrenderer.vectormath.Vector3;
+import com.dopenkov.tinyrenderer.vectormath.VectorF;
 import org.junit.Test;
 
 import java.util.List;
@@ -20,14 +20,14 @@ public class ModelTest {
         assertEquals(50054, faces.size());
         Model.Vertex[] face0 = faces.get(0);
         assertEquals(3, face0.length);
-        assertEquals(new Vector3(0.028911f,  0.137885f, 0.150147f), face0[0].location);
-        assertEquals(new Vector3(0.122546f, 0.262678f), face0[0].uv);
-        assertEquals(new Vector3(0.124554f, 0.265355f), face0[1].uv);
-        assertEquals(new Vector3(-0.589900f, 0.453900f, 0.667800f), face0[2].normal);
+        assertEquals(new VectorF(0.028911f,  0.137885f, 0.150147f), face0[0].location);
+        assertEquals(new VectorF(0.122546f, 0.262678f, 0), face0[0].uv);
+        assertEquals(new VectorF(0.124554f, 0.265355f, 0), face0[1].uv);
+        assertEquals(new VectorF(-0.589900f, 0.453900f, 0.667800f), face0[2].normal);
 
         Model.Vertex[] faceLast = faces.get(faces.size() - 1);
         assertEquals(3, faceLast.length);
-        assertEquals(new Vector3(0.205570f, -0.159949f, 0.068638f), faceLast[2].location);
+        assertEquals(new VectorF(0.205570f, -0.159949f, 0.068638f), faceLast[2].location);
     }
 
 }

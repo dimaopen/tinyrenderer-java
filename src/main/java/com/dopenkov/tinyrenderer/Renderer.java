@@ -1,9 +1,11 @@
 package com.dopenkov.tinyrenderer;
 
-import com.dopenkov.tinyrenderer.vectormath.Vector3;
+import com.dopenkov.tinyrenderer.vectormath.VectorF;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
+
+import static java.lang.Math.abs;
 
 /**
  * @author <a href="mailto:dimaopen@gmail.com">Dmitry Openkov</a>
@@ -11,8 +13,8 @@ import java.awt.image.BufferedImage;
  */
 public class Renderer {
     public int outWidth, outHeight;
-    public Vector3 lookat, cameraLocation, cameraUp;
-    public Vector3 lightDirection;
+    public VectorF lookat, cameraLocation, cameraUp;
+    public VectorF lightDirection;
     private Model model;
     private BufferedImage renderedImage;
 
@@ -20,10 +22,10 @@ public class Renderer {
         this.model = model;
         outWidth = 600;
         outHeight = 600;
-        lookat = new Vector3(0, 0, 0);
-        cameraLocation = new Vector3(0, 0, 5);
-        cameraUp = new Vector3(0, 1, 0);
-        lightDirection = new Vector3(1, 3, 1);
+        lookat = new VectorF(0, 0, 0);
+        cameraLocation = new VectorF(0, 0, 5);
+        cameraUp = new VectorF(0, 1, 0);
+        lightDirection = new VectorF(1, 3, 1);
     }
 
     public BufferedImage getRenderedImage() {
@@ -34,7 +36,7 @@ public class Renderer {
         if (renderedImage == null || renderedImage.getWidth() != outWidth || renderedImage.getHeight() != outHeight) {
             renderedImage = new BufferedImage(outWidth, outHeight, BufferedImage.TYPE_INT_RGB);
         }
-        final Vector3 one = new Vector3(1, 1, 0);
+        final VectorF one = new VectorF(1, 1, 0);
         Color[] colors = {Color.RED, Color.GREEN, Color.BLUE};
         for (Model.Vertex[] face : model.getFaces()) {
             for (int i = 0; i < face.length; i++) {
@@ -45,11 +47,11 @@ public class Renderer {
         }
     }
 
-    public void line(Vector3 p0, Vector3 p1, Color color) {
+    public void line(VectorF p0, VectorF p1, Color color) {
         p0 = p0.round();
         p1 = p1.round();
-        int deltaX = (int) Math.abs(p1.getX() - p0.getX());
-        int deltaY = (int) Math.abs(p1.getY() - p0.getY());
+        int deltaX = (int) abs(p1.getX() - p0.getX());
+        int deltaY = (int) abs(p1.getY() - p0.getY());
         boolean steep = deltaX < deltaY;
         int x0, y0, x1, y1;
         if (steep) {
@@ -60,7 +62,7 @@ public class Renderer {
             deltaY = tmp;
         }
         if (p0.getX() > p1.getX()) {
-            Vector3 tmp = p0;
+            VectorF tmp = p0;
             p0 = p1;
             p1 = tmp;
         }

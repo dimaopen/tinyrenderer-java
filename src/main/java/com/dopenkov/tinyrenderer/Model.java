@@ -1,6 +1,6 @@
 package com.dopenkov.tinyrenderer;
 
-import com.dopenkov.tinyrenderer.vectormath.Vector3;
+import com.dopenkov.tinyrenderer.vectormath.VectorF;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -18,9 +18,9 @@ import java.util.regex.Pattern;
  */
 public class Model {
     public class Vertex {
-        public Vector3 location;
-        public Vector3 normal;
-        public Vector3 uv;
+        public VectorF location;
+        public VectorF normal;
+        public VectorF uv;
     }
 
     private List<Vertex[]> faces;
@@ -34,9 +34,9 @@ public class Model {
         try (Scanner scanner = new Scanner(objStream)) {
             scanner.useDelimiter("\\s+|/");
             scanner.useLocale(Locale.US);
-            List<Vector3> vertexes = new ArrayList<>(1024);
-            List<Vector3> normals = new ArrayList<>(1024);
-            List<Vector3> uvs = new ArrayList<>(1024);
+            List<VectorF> vertexes = new ArrayList<>(1024);
+            List<VectorF> normals = new ArrayList<>(1024);
+            List<VectorF> uvs = new ArrayList<>(1024);
             Pattern v = Pattern.compile("v");
             Pattern vn = Pattern.compile("vn");
             Pattern vt = Pattern.compile("vt");
@@ -81,12 +81,12 @@ public class Model {
         }*/
     }
 
-    private Vector3 readVector(Scanner scanner) {
+    private VectorF readVector(Scanner scanner) {
         scanner.next();
         float x = scanner.hasNextFloat() ? scanner.nextFloat() : 0;
         float y = scanner.hasNextFloat() ? scanner.nextFloat() : 0;
         float z = scanner.hasNextFloat() ? scanner.nextFloat() : 0;
-        return new Vector3(x, y, z);
+        return new VectorF(x, y, z);
     }
 
 
