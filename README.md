@@ -21,9 +21,14 @@ cd tinyrenderer-java
 `mvn clean package`
 
 ###Execute
-`java -jar tinyrenderer-1.0.0-SNAPSHOT.jar path/to/your/model.obj`
+```
+java -jar tinyrenderer-1.0.0-SNAPSHOT.jar path/to/your/model.obj
+```
+As a single argument tt takes a path to [Wavefront .obj file][3]. The model texture should be at the same directory
+named your_model_name_diffuse.tga. You can download some models from
+[https://github.com/ssloy/tinyrenderer/tree/master/obj][4]
 
-You can render a sample model with running
+To render a sample model just execute
 ```
 mvn exec:java
 ```
@@ -31,5 +36,7 @@ The result picture is located at `working_dir/result.png`
 
 
 [1]: http://habrahabr.ru/post/248153/ "Brief course of computer graphic"
-[2]: https://github.com/ssloy/tinyrenderer "c++ version"
+[2]: https://github.com/ssloy/tinyrenderer "C++ version"
+[3]  https://en.wikipedia.org/wiki/Wavefront_.obj_file "Wavefront .obj file"
+[4]: https://github.com/ssloy/tinyrenderer/tree/master/obj "Models"
 
