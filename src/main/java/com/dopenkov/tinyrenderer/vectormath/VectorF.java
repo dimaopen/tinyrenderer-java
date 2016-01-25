@@ -50,7 +50,7 @@ public class VectorF {
         return components.length;
     }
 
-    public float getDimension(int i) {
+    public float getComponent(int i) {
         return components[i];
     }
 
@@ -86,15 +86,15 @@ public class VectorF {
     }
 
     public VectorF add(VectorF v) {
-        return map((component, num) -> component + v.getDimension(num));
+        return map((component, num) -> component + v.getComponent(num));
     }
 
     public VectorF sub(VectorF v) {
-        return map((component, num) -> component - v.getDimension(num));
+        return map((component, num) -> component - v.getComponent(num));
     }
 
     public float dot(VectorF v) {
-        VectorF mul = map((component, num) -> component * v.getDimension(num));
+        VectorF mul = map((component, num) -> component * v.getComponent(num));
         return sumComponents(mul);
     }
 

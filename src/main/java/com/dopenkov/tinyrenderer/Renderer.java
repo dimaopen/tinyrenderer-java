@@ -39,6 +39,8 @@ public class Renderer {
         }
         lightDirection = lightDirection.normalize();
         final VectorF one = new VectorF(1, 1, 0);
+        float[] zbuffer = new float[outWidth * outHeight];
+        Arrays.fill(zbuffer, Float.NEGATIVE_INFINITY);
         for (Model.Vertex[] face : model.getFaces()) {
             VectorF faceNormal = face[2].location.sub(face[0].location).cross(face[1].location.sub(face[0].location)).normalize();
             float intensity = faceNormal.dot(lightDirection);
@@ -46,7 +48,10 @@ public class Renderer {
                 continue;
             }
             Color color = new Color(Math.round(255 * intensity), Math.round(255 * intensity), Math.round(255 * intensity));
-            triangle(Arrays.stream(face).map(vertex -> vertex.location.add(one).scale(outWidth / 2f)).toArray(VectorF[]::new), color);
+            VectorF[] screenCoord = Arrays.stream(face)
+                    .map(vertex -> vertex.location.add(one).scale(outWidth / 2f))
+                    .toArray(VectorF[]::new);
+            triangle(screenCoord, color, zbuffer);
         }
     }
 
@@ -63,19 +68,24 @@ public class Renderer {
         return new VectorF(-1, 1, 1);
     }
 
-    void triangle(VectorF points[], Color color) {
+    void triangle(VectorF points[], Color color, float[] zbuffer) {
         VectorF[] pts = Arrays.stream(points).map(VectorF::round).toArray(VectorF[]::new);
         Arrays.sort(pts, (v1, v2) -> v1.getX() < v2.getX() ? -1 : v1.getX() == v2.getX() ? 0 : 1);
-        int minX = (int) pts[0].getX();
-        int maxX = (int) pts[2].getX();
+        int minX = (int) Math.max(pts[0].getX(), 0);
+        int maxX = (int) Math.min(pts[2].getX(), outWidth - 1);
         Arrays.sort(pts, (v1, v2) -> v1.getY() < v2.getY() ? -1 : v1.getY() == v2.getY() ? 0 : 1);
-        int minY = (int) pts[0].getY();
-        int maxY = (int) pts[2].getY();
+        int minY = (int) Math.max(pts[0].getY(), 0);
+        int maxY = (int) Math.min(pts[2].getY(), outHeight - 1);
         for (int x = minX; x <= maxX; x++) {
             for (int y = minY; y <= maxY; y++) {
                 VectorF P = new VectorF(x, y);
                 VectorF c = barycentric(pts[0], pts[1], pts[2], P);
-                if (c.getX() < 0 || c.getY() < 0 || c.getZ() < 0) continue;
+                //find z of our point P
+                //we need just weighted sum of z component of each point of our triangle
+                float z = pts[0].getZ() * c.getComponent(0) + pts[1].getZ() * c.getComponent(1) + pts[2].getZ() * c.getComponent(2);
+                int idx = x + y * outWidth;
+                if (c.getX() < 0 || c.getY() < 0 || c.getZ() < 0 || zbuffer[idx] >= z) continue;
+                zbuffer[idx] = z;
                 setPixel(x, y, color);
             }
         }
