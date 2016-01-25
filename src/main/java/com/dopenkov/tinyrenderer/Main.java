@@ -14,6 +14,11 @@ import java.nio.file.Paths;
 public class Main {
 
     public static void main(String[] args) {
+        if (args.length != 1) {
+            System.err.println("Usage: java -jar tinyrenderer.jar path/to/model.obj");
+            System.exit(3);
+            return;
+        }
         Model model;
         try {
             model = new Model(Paths.get(args[0]));

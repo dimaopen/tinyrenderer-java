@@ -2,6 +2,7 @@ package com.dopenkov.tinyrenderer;
 
 import com.dopenkov.tinyrenderer.vectormath.VectorF;
 
+import java.io.BufferedInputStream;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
@@ -10,6 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Scanner;
+import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
 /**
@@ -23,13 +25,19 @@ public class Model {
         public VectorF uv;
     }
 
+    Logger logger = Logger.getLogger(this.getClass().getName());
     private List<Vertex[]> faces;
 
     public Model(Path objFile) throws FileNotFoundException {
-        this(new FileInputStream(objFile.toFile()));
+        logger.info("Loading model data from " + objFile.toString());
+        loadData(new BufferedInputStream(new FileInputStream(objFile.toFile())));
     }
 
     public Model(InputStream objStream) {
+        loadData(objStream);
+    }
+
+    private void loadData(InputStream objStream) {
         faces = new ArrayList<>(1024);
         try (Scanner scanner = new Scanner(objStream)) {
             scanner.useDelimiter("\\s+|/");
