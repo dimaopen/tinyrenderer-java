@@ -34,6 +34,10 @@ mvn exec:java
 ```
 The result picture is located at `working_dir/result.png`
 
+###Implementation
+It's not ideal from performance perspective. I tried to code in an explicit way. Using Scanner instead of
+BufferedReader and StringTokenizer in model file parsing causes some performance penalty. Also the immutable Vectors
+require constant creating new Vectors instead of just changing primitive components.
 
 [1]: http://habrahabr.ru/post/248153/ "Brief course of computer graphic"
 [2]: https://github.com/ssloy/tinyrenderer "C++ version"
