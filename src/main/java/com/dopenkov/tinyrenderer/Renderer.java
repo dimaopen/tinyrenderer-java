@@ -1,5 +1,6 @@
 package com.dopenkov.tinyrenderer;
 
+import com.dopenkov.tinyrenderer.vectormath.Matrix;
 import com.dopenkov.tinyrenderer.vectormath.VectorF;
 
 import java.awt.*;
@@ -14,7 +15,7 @@ import static java.lang.Math.abs;
  */
 public class Renderer {
     public int outWidth, outHeight;
-    public VectorF lookat, cameraLocation, cameraUp;
+    public VectorF lookAt, cameraLocation, cameraUp;
     public VectorF lightDirection;
     private Model model;
     private BufferedImage renderedImage;
@@ -23,8 +24,8 @@ public class Renderer {
         this.model = model;
         outWidth = 600;
         outHeight = 600;
-        lookat = new VectorF(0, 0, 0);
-        cameraLocation = new VectorF(0, 0, 5);
+        lookAt = new VectorF(0, 0, 0);
+        cameraLocation = new VectorF(2, 0, 5);
         cameraUp = new VectorF(0, 1, 0);
         lightDirection = new VectorF(0, 0, -1);
     }
@@ -38,9 +39,13 @@ public class Renderer {
             renderedImage = new BufferedImage(outWidth, outHeight, BufferedImage.TYPE_INT_RGB);
         }
         lightDirection = lightDirection.normalize();
-        final VectorF one = new VectorF(1, 1, 0);
-        float[] zbuffer = new float[outWidth * outHeight];
-        Arrays.fill(zbuffer, Float.NEGATIVE_INFINITY);
+
+        Matrix lookAt = lookAt(cameraLocation, this.lookAt, cameraUp);
+        Matrix viewport = viewport(outWidth / 8, outHeight / 8, outWidth * 3 / 4, outHeight * 3 / 4);
+        Matrix projection = projection(-1.f / cameraLocation.sub(this.lookAt).length());
+        RenderContext ctx = new RenderContext(viewport, projection, lookAt);
+        VertexShader vertexShader = new VShader();
+        float[] zbuffer = createZBuffer();
         for (Model.Vertex[] face : model.getFaces()) {
             VectorF faceNormal = face[2].location.sub(face[0].location).cross(face[1].location.sub(face[0].location)).normalize();
             float intensity = faceNormal.dot(lightDirection);
@@ -48,14 +53,52 @@ public class Renderer {
                 continue;
             }
             Color color = new Color(Math.round(255 * intensity), Math.round(255 * intensity), Math.round(255 * intensity));
-            VectorF[] screenCoord = Arrays.stream(face)
-                    .map(vertex -> vertex.location.add(one).scale(outWidth / 2f))
-                    .toArray(VectorF[]::new);
+            VectorF[] screenCoord = new VectorF[3];
+            for (int i = 0; i < 3; i++) {
+                screenCoord[i] = vertexShader.vertex(ctx, face[i]);
+            }
             triangle(screenCoord, color, zbuffer);
         }
     }
 
-    VectorF barycentric(VectorF A, VectorF B, VectorF C, VectorF P) {
+    private float[] createZBuffer() {
+        float[] zbuffer = new float[outWidth * outHeight];
+        Arrays.fill(zbuffer, Float.NEGATIVE_INFINITY);
+        return zbuffer;
+    }
+
+    private Matrix viewport(int x, int y, int w, int h) {
+        Matrix viewportMatrix = Matrix.identity(4);
+        viewportMatrix.set(0, 3, x + w / 2.f);
+        viewportMatrix.set(1, 3, y + h / 2.f);
+        viewportMatrix.set(2, 3, 255.f / 2.f);
+        viewportMatrix.set(0, 0, w / 2.f);
+        viewportMatrix.set(1, 1, h / 2.f);
+        viewportMatrix.set(2, 2, 255.f / 2.f);
+        return viewportMatrix;
+    }
+
+    private Matrix projection(float coeff) {
+        Matrix projection = Matrix.identity(4);
+        projection.set(3, 2, coeff);
+        return projection;
+    }
+
+    private Matrix lookAt(VectorF cameraLocation, VectorF lookAt, VectorF up) {
+        VectorF z = cameraLocation.sub(lookAt).normalize();
+        VectorF x = up.cross(z).normalize();
+        VectorF y = z.cross(x).normalize();
+        Matrix modelView = Matrix.identity(4);
+        for (int i = 0; i < 3; i++) {
+            modelView.set(0, i, x.getComponent(i));
+            modelView.set(1, i, y.getComponent(i));
+            modelView.set(2, i, z.getComponent(i));
+            modelView.set(i, 3, -lookAt.getComponent(i));
+        }
+        return modelView;
+    }
+
+    private VectorF barycentric(VectorF A, VectorF B, VectorF C, VectorF P) {
         VectorF s0 = new VectorF(C.getX() - A.getX(), B.getX() - A.getX(), A.getX() - P.getX());
         VectorF s1 = new VectorF(C.getY() - A.getY(), B.getY() - A.getY(), A.getY() - P.getY());
 
@@ -68,7 +111,7 @@ public class Renderer {
         return new VectorF(-1, 1, 1);
     }
 
-    void triangle(VectorF points[], Color color, float[] zbuffer) {
+    private void triangle(VectorF points[], Color color, float[] zbuffer) {
         VectorF[] pts = Arrays.stream(points).map(VectorF::round).toArray(VectorF[]::new);
         Arrays.sort(pts, (v1, v2) -> v1.getX() < v2.getX() ? -1 : v1.getX() == v2.getX() ? 0 : 1);
         int minX = (int) Math.max(pts[0].getX(), 0);
@@ -100,4 +143,16 @@ public class Renderer {
         renderedImage.setRGB(x, y, color.getRGB());
     }
 
+}
+
+class VShader implements VertexShader {
+
+    @Override
+    public VectorF vertex(RenderContext ctx, Model.Vertex vertex) {
+        VectorF gl_Vertex = vertex.location.embedded();
+        gl_Vertex = ctx.getTransform().mul(gl_Vertex);     // transform it to screen coordinates
+//        varying_intensity[nthvert] = std::max(0.f, model->normal(iface, nthvert)*light_dir); // get diffuse lighting intensity
+        float lastComp = gl_Vertex.getComponent(gl_Vertex.getNumberOfComponents() - 1);
+        return gl_Vertex.proj().scale(1.0f / lastComp);                  // project homogeneous coordinates to 3d
+    }
 }

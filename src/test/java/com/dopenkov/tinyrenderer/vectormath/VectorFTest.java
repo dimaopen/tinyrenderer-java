@@ -29,11 +29,6 @@ public class VectorFTest {
     }
 
     @Test
-    public void testToInt() throws Exception {
-        assertEquals(new Vector3i(26, -16, -11), new VectorF(25.5f, -16.5f, -11.49f).toInt());
-    }
-
-    @Test
     public void testRound() throws Exception {
         assertEquals(new VectorF(26, -16, -11), new VectorF(25.5f, -16.5f, -11.49f).round());
     }
@@ -74,5 +69,10 @@ public class VectorFTest {
         assertEquals(0, VectorF.j.dot(VectorF.k), Float.MIN_VALUE);
         assertEquals(0, VectorF.k.dot(VectorF.i), Float.MIN_VALUE);
         assertEquals(-135, new VectorF(12, 11, -18).dot(new VectorF (2, -3, 7)), Float.MIN_VALUE);
+    }
+
+    @Test
+    public void testEmbedded() throws Exception {
+        assertEquals(new VectorF(new float[]{4, -4, 7, 1}), new VectorF(4, -4, 7).embedded());
     }
 }

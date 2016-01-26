@@ -86,16 +86,25 @@ public class VectorF {
     }
 
     public VectorF add(VectorF v) {
+        validateSameSize(v);
         return map((component, num) -> component + v.getComponent(num));
     }
 
     public VectorF sub(VectorF v) {
+        validateSameSize(v);
         return map((component, num) -> component - v.getComponent(num));
     }
 
     public float dot(VectorF v) {
+        validateSameSize(v);
         VectorF mul = map((component, num) -> component * v.getComponent(num));
         return sumComponents(mul);
+    }
+
+    private void validateSameSize(VectorF v) {
+        if (components.length != v.components.length) {
+            throw new IllegalArgumentException("Vectors of different size");
+        }
     }
 
     private float sumComponents(VectorF mul) {
@@ -113,10 +122,6 @@ public class VectorF {
                 this.getX() * v.getY() - this.getY() * v.getX());
     }
 
-    public Vector3i toInt() {
-        return new Vector3i(this);
-    }
-
     public VectorF round() {
         return map((component, num) -> (float) Math.round(component));
     }
@@ -126,6 +131,17 @@ public class VectorF {
         float tmp = modified[0];
         modified[0] = modified[1];
         modified[1] = tmp;
+        return new VectorF(modified);
+    }
+
+    public VectorF embedded() {
+        float[] modified = Arrays.copyOf(components, components.length + 1);
+        modified[components.length] = 1;
+        return new VectorF(modified);
+    }
+
+    public VectorF proj() {
+        float[] modified = Arrays.copyOf(components, components.length - 1);
         return new VectorF(modified);
     }
 
