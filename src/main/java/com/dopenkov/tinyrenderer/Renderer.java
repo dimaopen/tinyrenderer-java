@@ -25,7 +25,7 @@ public class Renderer {
         outWidth = 600;
         outHeight = 600;
         lookAt = new VectorF(0, 0, 0);
-        cameraLocation = new VectorF(2, 0, 5);
+        cameraLocation = new VectorF(2, 1, 5);
         cameraUp = new VectorF(0, 1, 0);
         lightDirection = new VectorF(0, 0, -1);
     }
@@ -38,26 +38,21 @@ public class Renderer {
         if (renderedImage == null || renderedImage.getWidth() != outWidth || renderedImage.getHeight() != outHeight) {
             renderedImage = new BufferedImage(outWidth, outHeight, BufferedImage.TYPE_INT_RGB);
         }
-        lightDirection = lightDirection.normalize();
 
         Matrix lookAt = lookAt(cameraLocation, this.lookAt, cameraUp);
         Matrix viewport = viewport(outWidth / 8, outHeight / 8, outWidth * 3 / 4, outHeight * 3 / 4);
         Matrix projection = projection(-1.f / cameraLocation.sub(this.lookAt).length());
-        RenderContext ctx = new RenderContext(viewport, projection, lookAt);
+        RenderingContext ctx = new RenderingContext(viewport, projection, lookAt);
+        ctx.setLightingDir(lightDirection.normalize());
         VertexShader vertexShader = new VShader();
+        FragmentShader fragmentShader = new PlainFragmentShader();
         float[] zbuffer = createZBuffer();
         for (Model.Vertex[] face : model.getFaces()) {
-            VectorF faceNormal = face[2].location.sub(face[0].location).cross(face[1].location.sub(face[0].location)).normalize();
-            float intensity = faceNormal.dot(lightDirection);
-            if (intensity <= 0) {
-                continue;
-            }
-            Color color = new Color(Math.round(255 * intensity), Math.round(255 * intensity), Math.round(255 * intensity));
             VectorF[] screenCoord = new VectorF[3];
             for (int i = 0; i < 3; i++) {
-                screenCoord[i] = vertexShader.vertex(ctx, face[i]);
+                screenCoord[i] = vertexShader.vertex(ctx, face[i], i);
             }
-            triangle(screenCoord, color, zbuffer);
+            triangle(screenCoord, ctx, fragmentShader, zbuffer);
         }
     }
 
@@ -111,7 +106,7 @@ public class Renderer {
         return new VectorF(-1, 1, 1);
     }
 
-    private void triangle(VectorF points[], Color color, float[] zbuffer) {
+    private void triangle(VectorF points[], RenderingContext ctx, FragmentShader fragmentShader, float[] zbuffer) {
         VectorF[] pts = Arrays.stream(points).map(VectorF::round).toArray(VectorF[]::new);
         Arrays.sort(pts, (v1, v2) -> v1.getX() < v2.getX() ? -1 : v1.getX() == v2.getX() ? 0 : 1);
         int minX = (int) Math.max(pts[0].getX(), 0);
@@ -129,7 +124,10 @@ public class Renderer {
                 int idx = x + y * outWidth;
                 if (c.getX() < 0 || c.getY() < 0 || c.getZ() < 0 || zbuffer[idx] >= z) continue;
                 zbuffer[idx] = z;
-                setPixel(x, y, color);
+                Color color = fragmentShader.fragment(ctx, c);
+                if (color != null) {
+                    setPixel(x, y, color);
+                }
             }
         }
     }
@@ -146,13 +144,33 @@ public class Renderer {
 }
 
 class VShader implements VertexShader {
+    static final String INTENSITY_KEY = "intensity";
+    private Model.Vertex[] face = new Model.Vertex[3];
 
     @Override
-    public VectorF vertex(RenderContext ctx, Model.Vertex vertex) {
+    public VectorF vertex(RenderingContext ctx, Model.Vertex vertex, int vertexNum) {
+        face[vertexNum] = vertex;
+        if (vertexNum == 2) {
+            VectorF faceNormal = face[2].location.sub(face[0].location)
+                    .cross(face[1].location.sub(face[0].location)).normalize();
+            Float intensity = faceNormal.dot(ctx.getLightingDir());
+            ctx.putVarying(INTENSITY_KEY, intensity);
+        }
         VectorF gl_Vertex = vertex.location.embedded();
         gl_Vertex = ctx.getTransform().mul(gl_Vertex);     // transform it to screen coordinates
-//        varying_intensity[nthvert] = std::max(0.f, model->normal(iface, nthvert)*light_dir); // get diffuse lighting intensity
         float lastComp = gl_Vertex.getComponent(gl_Vertex.getNumberOfComponents() - 1);
         return gl_Vertex.proj().scale(1.0f / lastComp);                  // project homogeneous coordinates to 3d
+    }
+}
+
+class PlainFragmentShader implements FragmentShader {
+    @Override
+    public Color fragment(RenderingContext ctx, VectorF bc) {
+        float intensity = ctx.getVarying(VShader.INTENSITY_KEY) != null ?
+                (Float) ctx.getVarying(VShader.INTENSITY_KEY) : 0;
+        if (intensity < 0) {
+            return null;
+        }
+        return new Color(Math.round(255 * intensity), Math.round(255 * intensity), Math.round(255 * intensity));
     }
 }
