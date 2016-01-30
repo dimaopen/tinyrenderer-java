@@ -22,12 +22,12 @@ public class Renderer {
 
     public Renderer(Model model) {
         this.model = model;
-        outWidth = 600;
-        outHeight = 600;
+        outWidth = 800;
+        outHeight = 800;
         lookAt = new VectorF(0, 0, 0);
-        cameraLocation = new VectorF(2, 1, 5);
+        cameraLocation = new VectorF(1, 1, 3);
         cameraUp = new VectorF(0, 1, 0);
-        lightDirection = new VectorF(0, 0, -1);
+        lightDirection = new VectorF(1, 1, 1);
     }
 
     public BufferedImage getRenderedImage() {
@@ -44,6 +44,8 @@ public class Renderer {
         Matrix projection = projection(-1.f / cameraLocation.sub(this.lookAt).length());
         RenderingContext ctx = new RenderingContext(viewport, projection, lookAt);
         ctx.setLightingDir(lightDirection.normalize());
+        ctx.setModel(model);
+
         VertexShader vertexShader = new VShader();
         FragmentShader fragmentShader = new PlainFragmentShader();
         float[] zbuffer = createZBuffer();
@@ -93,34 +95,34 @@ public class Renderer {
         return modelView;
     }
 
-    private VectorF barycentric(VectorF A, VectorF B, VectorF C, VectorF P) {
+    VectorF barycentric(VectorF A, VectorF B, VectorF C, VectorF P) {
         VectorF s0 = new VectorF(C.getX() - A.getX(), B.getX() - A.getX(), A.getX() - P.getX());
         VectorF s1 = new VectorF(C.getY() - A.getY(), B.getY() - A.getY(), A.getY() - P.getY());
 
         VectorF u = s0.cross(s1);
-        if (abs(u.getZ()) > .01) {
-            // If z component is zero then triangle ABC is degenerate
+        if (abs(u.getZ()) > .00001f) {
             return new VectorF(1.f - (u.getX() + u.getY()) / u.getZ(), u.getY() / u.getZ(), u.getX() / u.getZ());
         }
+        // If z component is zero then triangle ABC is degenerate
         // in this case generate negative coordinates, it will be thrown away by the rasterizator
         return new VectorF(-1, 1, 1);
     }
 
     private void triangle(VectorF points[], RenderingContext ctx, FragmentShader fragmentShader, float[] zbuffer) {
-        VectorF[] pts = Arrays.stream(points).map(VectorF::round).toArray(VectorF[]::new);
-        Arrays.sort(pts, (v1, v2) -> v1.getX() < v2.getX() ? -1 : v1.getX() == v2.getX() ? 0 : 1);
-        int minX = (int) Math.max(pts[0].getX(), 0);
-        int maxX = (int) Math.min(pts[2].getX(), outWidth - 1);
-        Arrays.sort(pts, (v1, v2) -> v1.getY() < v2.getY() ? -1 : v1.getY() == v2.getY() ? 0 : 1);
-        int minY = (int) Math.max(pts[0].getY(), 0);
-        int maxY = (int) Math.min(pts[2].getY(), outHeight - 1);
+        VectorF[] rounded = Arrays.stream(points).map(VectorF::round).toArray(VectorF[]::new);
+        Arrays.sort(rounded, (v1, v2) -> v1.getX() < v2.getX() ? -1 : v1.getX() == v2.getX() ? 0 : 1);
+        int minX = (int) Math.max(rounded[0].getX(), 0);
+        int maxX = (int) Math.min(rounded[2].getX(), outWidth - 1);
+        Arrays.sort(rounded, (v1, v2) -> v1.getY() < v2.getY() ? -1 : v1.getY() == v2.getY() ? 0 : 1);
+        int minY = (int) Math.max(rounded[0].getY(), 0);
+        int maxY = (int) Math.min(rounded[2].getY(), outHeight - 1);
         for (int x = minX; x <= maxX; x++) {
             for (int y = minY; y <= maxY; y++) {
                 VectorF P = new VectorF(x, y);
-                VectorF c = barycentric(pts[0], pts[1], pts[2], P);
+                VectorF c = barycentric(points[0], points[1], points[2], P);
                 //find z of our point P
                 //we need just weighted sum of z component of each point of our triangle
-                float z = pts[0].getZ() * c.getComponent(0) + pts[1].getZ() * c.getComponent(1) + pts[2].getZ() * c.getComponent(2);
+                float z = points[0].getZ() * c.getComponent(0) + points[1].getZ() * c.getComponent(1) + points[2].getZ() * c.getComponent(2);
                 int idx = x + y * outWidth;
                 if (c.getX() < 0 || c.getY() < 0 || c.getZ() < 0 || zbuffer[idx] >= z) continue;
                 zbuffer[idx] = z;
@@ -146,15 +148,18 @@ public class Renderer {
 class VShader implements VertexShader {
     static final String INTENSITY_KEY = "intensity";
     private Model.Vertex[] face = new Model.Vertex[3];
+    Matrix varying_uv = new Matrix(2, 3);
 
     @Override
     public VectorF vertex(RenderingContext ctx, Model.Vertex vertex, int vertexNum) {
         face[vertexNum] = vertex;
+        varying_uv.setCol(vertexNum, vertex.uv.proj());
         if (vertexNum == 2) {
             VectorF faceNormal = face[2].location.sub(face[0].location)
                     .cross(face[1].location.sub(face[0].location)).normalize();
             Float intensity = faceNormal.dot(ctx.getLightingDir());
             ctx.putVarying(INTENSITY_KEY, intensity);
+            ctx.putVarying("varying_uv", varying_uv);
         }
         VectorF gl_Vertex = vertex.location.embedded();
         gl_Vertex = ctx.getTransform().mul(gl_Vertex);     // transform it to screen coordinates
@@ -166,11 +171,8 @@ class VShader implements VertexShader {
 class PlainFragmentShader implements FragmentShader {
     @Override
     public Color fragment(RenderingContext ctx, VectorF bc) {
-        float intensity = ctx.getVarying(VShader.INTENSITY_KEY) != null ?
-                (Float) ctx.getVarying(VShader.INTENSITY_KEY) : 0;
-        if (intensity < 0) {
-            return null;
-        }
-        return new Color(Math.round(255 * intensity), Math.round(255 * intensity), Math.round(255 * intensity));
+        Matrix varying_uv = (Matrix) ctx.getVarying("varying_uv");
+        VectorF uv = varying_uv.mul(bc);
+        return ctx.getModel().getDiffuse(uv);
     }
 }

@@ -79,6 +79,16 @@ public class MatrixTest {
         }
     }
 
+    @Theory
+    public void testSetCol(int width) throws Exception {
+        int height = 10;
+        Matrix matrixT = createMatrix(height, width);
+        VectorF vector = new VectorF(new float[height]);
+        int colNum = width / 2;
+        matrixT.setCol(colNum, vector);
+        assertEquals(vector, matrixT.col(colNum));
+    }
+
     @Test
     public void testMulMatrix() {
         Matrix m1 = createMatrix(3, 2);

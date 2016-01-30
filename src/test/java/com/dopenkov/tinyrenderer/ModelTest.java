@@ -3,6 +3,10 @@ package com.dopenkov.tinyrenderer;
 import com.dopenkov.tinyrenderer.vectormath.VectorF;
 import org.junit.Test;
 
+import java.awt.*;
+import java.io.FileNotFoundException;
+import java.nio.file.Paths;
+import java.util.*;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
@@ -15,7 +19,8 @@ public class ModelTest {
 
     @Test
     public void testReadingObj() {
-        Model modelT = new Model(this.getClass().getResourceAsStream("/model/test_model.obj"));
+        Model modelT = new Model();
+        modelT.loadData(this.getClass().getResourceAsStream("/model/test_model.obj"));
         List<Model.Vertex[]> faces = modelT.getFaces();
         assertEquals(50054, faces.size());
         Model.Vertex[] face0 = faces.get(0);
@@ -30,4 +35,10 @@ public class ModelTest {
         assertEquals(new VectorF(0.205570f, -0.159949f, 0.068638f), faceLast[2].location);
     }
 
+    @Test
+    public void testDiffuse() {
+        Model modelT = new Model();
+        modelT.loadTexture(this.getClass().getResourceAsStream("/model/test_model_diffuse.tga"));
+        assertEquals(new Color(193, 197, 234), modelT.getDiffuse(new VectorF(.259f, .3525f)));
+    }
 }

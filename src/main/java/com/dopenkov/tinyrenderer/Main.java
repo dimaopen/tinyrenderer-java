@@ -19,9 +19,9 @@ public class Main {
             System.exit(3);
             return;
         }
-        Model model;
+        Model model = new Model();
         try {
-            model = new Model(Paths.get(args[0]));
+            model.loadData(Paths.get(args[0]));
         } catch (FileNotFoundException e) {
             System.out.println("Cannot find file " + args[0]);
             System.exit(1);

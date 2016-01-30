@@ -16,6 +16,7 @@ public class RenderingContext {
     private Matrix modelView;
     private Matrix transform;
     private VectorF lightingDir;
+    private Model model;
     private Map<String, Object> varying = new HashMap<>();
 
     public RenderingContext(Matrix viewportMatrix, Matrix projection, Matrix modelView) {
@@ -55,5 +56,13 @@ public class RenderingContext {
 
     public Object getVarying(String key) {
         return varying.get(key);
+    }
+
+    public Model getModel() {
+        return model;
+    }
+
+    public void setModel(Model model) {
+        this.model = model;
     }
 }

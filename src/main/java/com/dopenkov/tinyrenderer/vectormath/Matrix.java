@@ -52,6 +52,17 @@ public class Matrix {
         return elements[row * width + col];
     }
 
+    public void setCol(int colNum, VectorF col) {
+        int m = this.getHeight();
+        if (m != col.getNumberOfComponents()) {
+            throw new IllegalArgumentException("Number of rows of matrix must be equal" +
+                    " to number of components of vector");
+        }
+        for (int i = 0; i < m; i++) {
+            set(i, colNum, col.getComponent(i));
+        }
+    }
+
     public VectorF row(int idx) {
         int from = idx * width;
         float[] components = Arrays.copyOfRange(elements, from, from + width);
@@ -84,7 +95,7 @@ public class Matrix {
     public VectorF mul(VectorF v) {
         if (this.getWidth() != v.getNumberOfComponents()) {
             throw new IllegalArgumentException("Number of columns of matrix must be equal to" +
-                    " number of components in vector");
+                    " number of components of vector");
         }
         int m = this.getHeight();
         float[] components = new float[m];

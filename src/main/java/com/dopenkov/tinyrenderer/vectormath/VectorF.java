@@ -24,7 +24,7 @@ public class VectorF {
     }
 
     public VectorF(float[] components) {
-        this.components = components;
+        this.components = Arrays.copyOf(components, components.length);
     }
 
     public VectorF(float x, float y) {
@@ -159,7 +159,14 @@ public class VectorF {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         VectorF v = (VectorF) o;
-        return Arrays.equals(components, v.components);
+        if (components.length != v.components.length)
+            return false;
+
+        for (int i = 0; i < components.length; i++)
+            if (components[i] != v.components[i])
+                return false;
+
+        return true;
     }
 
     @Override

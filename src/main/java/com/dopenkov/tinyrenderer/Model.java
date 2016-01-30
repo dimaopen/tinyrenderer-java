@@ -2,10 +2,10 @@ package com.dopenkov.tinyrenderer;
 
 import com.dopenkov.tinyrenderer.vectormath.VectorF;
 
-import java.io.BufferedInputStream;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.InputStream;
+import javax.imageio.ImageIO;
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.io.*;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -27,18 +27,45 @@ public class Model {
 
     Logger logger = Logger.getLogger(this.getClass().getName());
     private List<Vertex[]> faces;
+    private BufferedImage diffuse;
 
-    public Model(Path objFile) throws FileNotFoundException {
+    public Model() {
+        faces = new ArrayList<>(1024);
+    }
+
+    public void loadData(Path objFile) throws FileNotFoundException {
         logger.info("Loading model data from " + objFile.toString());
         loadData(new BufferedInputStream(new FileInputStream(objFile.toFile())));
+        File textureFile = getTextureFile(objFile);
+        logger.info("Loading model texture from " + textureFile.getAbsolutePath());
+        try {
+            loadTexture(new BufferedInputStream(new FileInputStream(textureFile)));
+        } catch (FileNotFoundException e) {
+            logger.warning("No texture file found " + textureFile.getAbsolutePath());
+        }
     }
 
-    public Model(InputStream objStream) {
-        loadData(objStream);
+    private File getTextureFile(Path objFile) {
+        String fileName = objFile.getFileName().toString();
+        String textureFileName = fileName.substring(0, fileName.lastIndexOf('.')) + "_diffuse.tga";
+        return new File(objFile.getParent().toFile(), textureFileName);
     }
 
-    private void loadData(InputStream objStream) {
-        faces = new ArrayList<>(1024);
+    public void loadTexture(InputStream inputStream) {
+        try {
+            diffuse = ImageIO.read(inputStream);
+        } catch (IOException e) {
+            logger.warning("Cannot load texture;");
+        } finally {
+            try {
+                inputStream.close();
+            } catch (IOException e) {
+                //do nothing
+            }
+        }
+    }
+
+    public void loadData(InputStream objStream) {
         try (Scanner scanner = new Scanner(objStream)) {
             scanner.useDelimiter("\\s+|/");
             scanner.useLocale(Locale.US);
@@ -81,12 +108,15 @@ public class Model {
             System.out.println("uvs = " + uvs.size());
             System.out.println("faces = " + faces.size());
         }
-        /*BufferedImage img = null;
-        try {
-            img = ImageIO.read(new File("test01.tga"));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }*/
+    }
+
+    Color getDiffuse(VectorF uv) {
+        if (diffuse == null) {
+            return Color.WHITE;
+        }
+        int x = Math.round(uv.getX() * diffuse.getWidth());
+        int y = Math.round(uv.getY() * diffuse.getHeight());
+        return new Color(diffuse.getRGB(x, diffuse.getHeight() - 1 - y));
     }
 
     private VectorF readVector(Scanner scanner) {
