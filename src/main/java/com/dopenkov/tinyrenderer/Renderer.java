@@ -47,7 +47,7 @@ public class Renderer {
         ctx.setLightingDir(lightDirection.normalize());
         ctx.setModel(model);
 
-        Shader shader = new PlainShader();
+        Shader shader = new GouraudShader();
         float[] zbuffer = createZBuffer();
         for (Model.Vertex[] face : model.getFaces()) {
             VectorF[] screenCoord = new VectorF[3];
@@ -145,20 +145,14 @@ public class Renderer {
 
 }
 
-class PlainShader implements Shader {
-    private Model.Vertex[] face = new Model.Vertex[3];
-    Matrix varying_uv = new Matrix(2, 3);
-    private Float intensity;
+class GouraudShader implements Shader {
+    private Matrix varying_uv = new Matrix(2, 3);
+    private float[] varying_intencity = new float[3];
 
     @Override
     public VectorF vertex(RenderingContext ctx, Model.Vertex vertex, int vertexNum) {
-        face[vertexNum] = vertex;
-        varying_uv.setCol(vertexNum, vertex.uv.proj());
-        if (vertexNum == 2) {
-            VectorF faceNormal = face[2].location.sub(face[0].location)
-                    .cross(face[1].location.sub(face[0].location)).normalize();
-            intensity = faceNormal.dot(ctx.getLightingDir());
-        }
+        varying_intencity[vertexNum] = vertex.normal.dot(ctx.getLightingDir());
+        varying_uv.setCol(vertexNum, vertex.uv);
         VectorF gl_Vertex = vertex.location.embedded();
         gl_Vertex = ctx.getTransform().mul(gl_Vertex);     // transform it to screen coordinates
         float lastComp = gl_Vertex.getComponent(gl_Vertex.getNumberOfComponents() - 1);
@@ -167,6 +161,7 @@ class PlainShader implements Shader {
 
     @Override
     public Color fragment(RenderingContext ctx, VectorF bc) {
+        float intensity = new VectorF(varying_intencity).dot(bc);
         if (intensity < 0) {
             return Color.BLACK;
         }

@@ -80,11 +80,14 @@ public class Model {
             while (scanner.hasNextLine()) {
                 try {
                     if (scanner.hasNext(v)) {
-                        vertexes.add(readVector(scanner));
+                        vertexes.add(readVector3(scanner));
                     } else if (scanner.hasNext(vn)) {
-                        normals.add(readVector(scanner));
+                        VectorF n = readVector3(scanner);
+                        //because in .obj components of normal is reversed
+                        //we need to reverse it back
+                        normals.add(n.scale(-1));
                     } else if (scanner.hasNext(vt)) {
-                        uvs.add(readVector(scanner));
+                        uvs.add(readVector2(scanner));
                     } else if (scanner.hasNext(f)) {
                         scanner.next();
                         final Vertex[] face = new Vertex[3];
@@ -119,12 +122,19 @@ public class Model {
         return new Color(diffuse.getRGB(x, diffuse.getHeight() - 1 - y));
     }
 
-    private VectorF readVector(Scanner scanner) {
+    private VectorF readVector3(Scanner scanner) {
         scanner.next();
-        float x = scanner.hasNextFloat() ? scanner.nextFloat() : 0;
-        float y = scanner.hasNextFloat() ? scanner.nextFloat() : 0;
-        float z = scanner.hasNextFloat() ? scanner.nextFloat() : 0;
+        float x = scanner.nextFloat();
+        float y = scanner.nextFloat();
+        float z = scanner.nextFloat();
         return new VectorF(x, y, z);
+    }
+
+    private VectorF readVector2(Scanner scanner) {
+        scanner.next();
+        float x = scanner.nextFloat();
+        float y = scanner.nextFloat();
+        return new VectorF(x, y);
     }
 
 

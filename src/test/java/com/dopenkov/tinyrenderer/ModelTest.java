@@ -26,9 +26,9 @@ public class ModelTest {
         Model.Vertex[] face0 = faces.get(0);
         assertEquals(3, face0.length);
         assertEquals(new VectorF(0.028911f,  0.137885f, 0.150147f), face0[0].location);
-        assertEquals(new VectorF(0.122546f, 0.262678f, 0), face0[0].uv);
-        assertEquals(new VectorF(0.124554f, 0.265355f, 0), face0[1].uv);
-        assertEquals(new VectorF(-0.589900f, 0.453900f, 0.667800f), face0[2].normal);
+        assertEquals(new VectorF(0.122546f, 0.262678f), face0[0].uv);
+        assertEquals(new VectorF(0.124554f, 0.265355f), face0[1].uv);
+        assertEquals(new VectorF(0.589900f, -0.453900f, -0.667800f), face0[2].normal);
 
         Model.Vertex[] faceLast = faces.get(faces.size() - 1);
         assertEquals(3, faceLast.length);
