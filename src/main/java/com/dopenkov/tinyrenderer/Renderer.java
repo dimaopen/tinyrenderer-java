@@ -8,6 +8,7 @@ import java.awt.image.BufferedImage;
 import java.util.Arrays;
 
 import static java.lang.Math.abs;
+import static java.lang.Math.round;
 
 /**
  * @author <a href="mailto:dimaopen@gmail.com">Dmitry Openkov</a>
@@ -27,7 +28,7 @@ public class Renderer {
         lookAt = new VectorF(0, 0, 0);
         cameraLocation = new VectorF(1, 1, 3);
         cameraUp = new VectorF(0, 1, 0);
-        lightDirection = new VectorF(1, 1, 1);
+        lightDirection = new VectorF(-1, -1, -1);
     }
 
     public BufferedImage getRenderedImage() {
@@ -46,15 +47,14 @@ public class Renderer {
         ctx.setLightingDir(lightDirection.normalize());
         ctx.setModel(model);
 
-        VertexShader vertexShader = new VShader();
-        FragmentShader fragmentShader = new PlainFragmentShader();
+        Shader shader = new PlainShader();
         float[] zbuffer = createZBuffer();
         for (Model.Vertex[] face : model.getFaces()) {
             VectorF[] screenCoord = new VectorF[3];
             for (int i = 0; i < 3; i++) {
-                screenCoord[i] = vertexShader.vertex(ctx, face[i], i);
+                screenCoord[i] = shader.vertex(ctx, face[i], i);
             }
-            triangle(screenCoord, ctx, fragmentShader, zbuffer);
+            triangle(screenCoord, ctx, shader, zbuffer);
         }
     }
 
@@ -104,11 +104,11 @@ public class Renderer {
             return new VectorF(1.f - (u.getX() + u.getY()) / u.getZ(), u.getY() / u.getZ(), u.getX() / u.getZ());
         }
         // If z component is zero then triangle ABC is degenerate
-        // in this case generate negative coordinates, it will be thrown away by the rasterizator
+        // in this case generate negative coordinates, it will be thrown away by the rasterizer
         return new VectorF(-1, 1, 1);
     }
 
-    private void triangle(VectorF points[], RenderingContext ctx, FragmentShader fragmentShader, float[] zbuffer) {
+    private void triangle(VectorF points[], RenderingContext ctx, Shader fragmentShader, float[] zbuffer) {
         VectorF[] rounded = Arrays.stream(points).map(VectorF::round).toArray(VectorF[]::new);
         Arrays.sort(rounded, (v1, v2) -> v1.getX() < v2.getX() ? -1 : v1.getX() == v2.getX() ? 0 : 1);
         int minX = (int) Math.max(rounded[0].getX(), 0);
@@ -145,10 +145,10 @@ public class Renderer {
 
 }
 
-class VShader implements VertexShader {
-    static final String INTENSITY_KEY = "intensity";
+class PlainShader implements Shader {
     private Model.Vertex[] face = new Model.Vertex[3];
     Matrix varying_uv = new Matrix(2, 3);
+    private Float intensity;
 
     @Override
     public VectorF vertex(RenderingContext ctx, Model.Vertex vertex, int vertexNum) {
@@ -157,22 +157,21 @@ class VShader implements VertexShader {
         if (vertexNum == 2) {
             VectorF faceNormal = face[2].location.sub(face[0].location)
                     .cross(face[1].location.sub(face[0].location)).normalize();
-            Float intensity = faceNormal.dot(ctx.getLightingDir());
-            ctx.putVarying(INTENSITY_KEY, intensity);
-            ctx.putVarying("varying_uv", varying_uv);
+            intensity = faceNormal.dot(ctx.getLightingDir());
         }
         VectorF gl_Vertex = vertex.location.embedded();
         gl_Vertex = ctx.getTransform().mul(gl_Vertex);     // transform it to screen coordinates
         float lastComp = gl_Vertex.getComponent(gl_Vertex.getNumberOfComponents() - 1);
         return gl_Vertex.proj().scale(1.0f / lastComp);                  // project homogeneous coordinates to 3d
     }
-}
 
-class PlainFragmentShader implements FragmentShader {
     @Override
     public Color fragment(RenderingContext ctx, VectorF bc) {
-        Matrix varying_uv = (Matrix) ctx.getVarying("varying_uv");
+        if (intensity < 0) {
+            return Color.BLACK;
+        }
         VectorF uv = varying_uv.mul(bc);
-        return ctx.getModel().getDiffuse(uv);
+        Color c = ctx.getModel().getDiffuse(uv);
+        return new Color(round(c.getRed() * intensity), round(c.getGreen() * intensity), round(c.getBlue() * intensity));
     }
 }

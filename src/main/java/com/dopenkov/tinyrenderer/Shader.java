@@ -2,12 +2,15 @@ package com.dopenkov.tinyrenderer;
 
 import com.dopenkov.tinyrenderer.vectormath.VectorF;
 
-import java.awt.*;
+import java.awt.Color;
 
 /**
  * @author <a href="mailto:dimaopen@gmail.com">Dmitry Openkov</a>
- *         Created 26.01.16.
+ *         Created 31.01.16.
  */
-public interface FragmentShader {
+public interface Shader {
+    VectorF vertex(RenderingContext ctx, Model.Vertex vertex, int vertexNum);
+
     Color fragment(RenderingContext ctx, VectorF barycentric);
+
 }
