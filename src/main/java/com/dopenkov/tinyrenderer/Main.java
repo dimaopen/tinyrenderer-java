@@ -9,7 +9,7 @@ import java.nio.file.Paths;
 
 /**
  * @author <a href="mailto:dimaopen@gmail.com">Dmitry Openkov</a>
- * Created 19.01.16.
+ *         Created 19.01.16.
  */
 public class Main {
 
@@ -23,7 +23,7 @@ public class Main {
         try {
             model.loadData(Paths.get(args[0]));
         } catch (FileNotFoundException e) {
-            System.out.println("Cannot find file " + args[0]);
+            System.err.println("Cannot find file " + args[0]);
             System.exit(1);
             return;
         }
@@ -31,11 +31,13 @@ public class Main {
         renderer.render();
         BufferedImage img = renderer.getRenderedImage();
         File outputfile = new File("result.png");
+        System.out.println("Writing result to " + outputfile.getAbsolutePath());
+
         try {
             ImageIO.write(img, "png", outputfile);
         } catch (IOException e) {
-            System.out.println("Cannot write file " + outputfile.getAbsolutePath());
-            System.out.println(e.getMessage());
+            System.err.println("Cannot write file " + outputfile.getAbsolutePath());
+            System.err.println(e.getMessage());
             System.exit(2);
         }
     }

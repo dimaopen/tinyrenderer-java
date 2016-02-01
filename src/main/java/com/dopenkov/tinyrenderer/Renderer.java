@@ -148,11 +148,13 @@ public class Renderer {
 class GouraudShader implements Shader {
     private Matrix varying_uv = new Matrix(2, 3);
     private float[] varying_intencity = new float[3];
+    private Matrix normalMatrix = new Matrix(3, 3);
 
     @Override
     public VectorF vertex(RenderingContext ctx, Model.Vertex vertex, int vertexNum) {
         varying_intencity[vertexNum] = vertex.normal.dot(ctx.getLightingDir());
         varying_uv.setCol(vertexNum, vertex.uv);
+        normalMatrix.setCol(vertexNum, vertex.normal);
         VectorF gl_Vertex = vertex.location.embedded();
         gl_Vertex = ctx.getTransform().mul(gl_Vertex);     // transform it to screen coordinates
         float lastComp = gl_Vertex.getComponent(gl_Vertex.getNumberOfComponents() - 1);
@@ -161,12 +163,24 @@ class GouraudShader implements Shader {
 
     @Override
     public Color fragment(RenderingContext ctx, VectorF bc) {
-        float intensity = new VectorF(varying_intencity).dot(bc);
-        if (intensity < 0) {
-            return Color.BLACK;
+        float diffuse = new VectorF(varying_intencity).dot(bc);
+        if (diffuse < 0) {
+            diffuse = 0;
         }
         VectorF uv = varying_uv.mul(bc);
+        VectorF n = normalMatrix.mul(bc);
+        VectorF l = ctx.getLightingDir().scale(-1);
+        VectorF reflectedLight = n.scale(n.dot(l) * 2 ).sub(l).normalize();
         Color c = ctx.getModel().getDiffuse(uv);
+        float spec = (float) Math.pow(reflectedLight.getZ(), ctx.getModel().getSecular(uv));
+        if (spec < 0) {
+            spec = 0;
+        }
+        float ambient = .1f;
+        float intensity = ambient + .8f * diffuse + .2f * spec;
+        if (intensity > 1) {
+            intensity = 1;
+        }
         return new Color(round(c.getRed() * intensity), round(c.getGreen() * intensity), round(c.getBlue() * intensity));
     }
 }

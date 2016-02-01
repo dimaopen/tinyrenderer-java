@@ -20,15 +20,16 @@ import java.util.regex.Pattern;
  */
 public class Model {
     public class Vertex {
+
         public VectorF location;
         public VectorF normal;
         public VectorF uv;
     }
-
     Logger logger = Logger.getLogger(this.getClass().getName());
+
     private List<Vertex[]> faces;
     private BufferedImage diffuse;
-
+    private BufferedImage specular;
     public Model() {
         faces = new ArrayList<>(1024);
     }
@@ -36,24 +37,33 @@ public class Model {
     public void loadData(Path objFile) throws FileNotFoundException {
         logger.info("Loading model data from " + objFile.toString());
         loadData(new BufferedInputStream(new FileInputStream(objFile.toFile())));
-        File textureFile = getTextureFile(objFile);
-        logger.info("Loading model texture from " + textureFile.getAbsolutePath());
-        try {
-            loadTexture(new BufferedInputStream(new FileInputStream(textureFile)));
-        } catch (FileNotFoundException e) {
-            logger.warning("No texture file found " + textureFile.getAbsolutePath());
-        }
+        diffuse = loadImg(getTextureFile(objFile, "_diffuse.tga"), "texture");
+        specular = loadImg(getTextureFile(objFile, "_spec.tga"), "specular map");
     }
 
-    private File getTextureFile(Path objFile) {
+    public void loadTexture(InputStream ios) {
+        diffuse = loadImg(ios);
+    }
+
+    private BufferedImage loadImg(File imgFile, String imgName) {
+        logger.info(String.format("Loading model %s from %s", imgName, imgFile.getAbsolutePath()));
+        try {
+            return loadImg(new BufferedInputStream(new FileInputStream(imgFile)));
+        } catch (FileNotFoundException e) {
+            logger.warning(String.format("No %s file found %s", imgName, imgFile.getAbsolutePath()));
+        }
+        return null;
+    }
+
+    private File getTextureFile(Path objFile, String suffix) {
         String fileName = objFile.getFileName().toString();
-        String textureFileName = fileName.substring(0, fileName.lastIndexOf('.')) + "_diffuse.tga";
+        String textureFileName = fileName.substring(0, fileName.lastIndexOf('.')) + suffix;
         return new File(objFile.getParent().toFile(), textureFileName);
     }
 
-    public void loadTexture(InputStream inputStream) {
+    private BufferedImage loadImg(InputStream inputStream) {
         try {
-            diffuse = ImageIO.read(inputStream);
+            return ImageIO.read(inputStream);
         } catch (IOException e) {
             logger.warning("Cannot load texture;");
         } finally {
@@ -63,6 +73,7 @@ public class Model {
                 //do nothing
             }
         }
+        return null;
     }
 
     public void loadData(InputStream objStream) {
@@ -106,20 +117,32 @@ public class Model {
                 scanner.nextLine();
                 lineNum++;
             }
-            System.out.println("vertexes = " + vertexes.size());
-            System.out.println("normals = " + normals.size());
-            System.out.println("uvs = " + uvs.size());
-            System.out.println("faces = " + faces.size());
+            logger.info("vertexes = " + vertexes.size());
+            logger.info("normals = " + normals.size());
+            logger.info("uvs = " + uvs.size());
+            logger.info("faces = " + faces.size());
         }
     }
 
-    Color getDiffuse(VectorF uv) {
+    public Color getDiffuse(VectorF uv) {
         if (diffuse == null) {
             return Color.WHITE;
         }
-        int x = Math.round(uv.getX() * diffuse.getWidth());
-        int y = Math.round(uv.getY() * diffuse.getHeight());
-        return new Color(diffuse.getRGB(x, diffuse.getHeight() - 1 - y));
+        return getColorFromUV(uv, diffuse);
+    }
+
+    public float getSecular(VectorF uv) {
+        if (specular == null) {
+            return 0;
+        }
+        Color c = getColorFromUV(uv, specular);
+        return c.getRed();
+    }
+
+    private Color getColorFromUV(VectorF uv, BufferedImage img) {
+        int x = Math.round(uv.getX() * img.getWidth());
+        int y = Math.round(uv.getY() * img.getHeight());
+        return new Color(img.getRGB(x, img.getHeight() - 1 - y));
     }
 
     private VectorF readVector3(Scanner scanner) {
