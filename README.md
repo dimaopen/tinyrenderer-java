@@ -1,12 +1,12 @@
 ##Tiny Renderer in Java
-This project is an attempt to write a 3d model render basing on the series of articles located at [habrahabr.ru][1]
+This project is a 3d model render which is based on the series of articles located at [habrahabr.ru][1]
 (Caution: Russian).
 
 C++ version is [here][2].
 
 ###Build Requirements
 * Java 8
-* Maven 3.2
+* Maven 3.x
 
 ###Runtime Requirements
   * Java 8
