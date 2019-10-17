@@ -1,26 +1,26 @@
-##Tiny Renderer in Java
-This project is a 3d model render which is based on the series of articles located at [habrahabr.ru][1]
-(Caution: Russian).
+## Tiny Renderer in Java
+This project is a 3d model render which is based on the series of articles "Tiny renderer or how OpenGL works"
+ by Dmitry V. Sokolov located [here][1]. Russian version of this articles is at [Habr][5].
 
 C++ version is [here][2].
 
-###Build Requirements
+### Build Requirements
 * Java 8
 * Maven 3.x
 
-###Runtime Requirements
+### Runtime Requirements
   * Java 8
 
-###Download from Github
+### Download from Github
 ```
 git clone https://github.com/dimaopen/tinyrenderer-java.git
 cd tinyrenderer-java
 ```
 
-###Build
+### Build
 `mvn clean package`
 
-###Execute
+### Execute
 ```
 java -jar tinyrenderer-1.0.0-SNAPSHOT.jar path/to/your/model.obj
 ```
@@ -34,13 +34,14 @@ mvn exec:java
 ```
 The result picture is located at `working_dir/result.png`
 
-###Implementation
+### Implementation
 It's not ideal from performance perspective. I tried to code in an explicit way. Using Scanner instead of
 BufferedReader and StringTokenizer in model file parsing causes some performance penalty. Also the immutable Vectors
 require constant creating new Vectors instead of just changing primitive components.
 
-[1]: http://habrahabr.ru/post/248153/ "Brief course of computer graphic"
+[1]: https://github.com/ssloy/tinyrenderer/wiki/Lesson-0:-getting-started "Brief course of computer graphic"
 [2]: https://github.com/ssloy/tinyrenderer "C++ version"
 [3]: https://en.wikipedia.org/wiki/Wavefront_.obj_file "Wavefront .obj file"
 [4]: https://github.com/ssloy/tinyrenderer/tree/master/obj "Models"
+[5]: https://habr.com/ru/post/248153/ "Краткий курс компьютерной графики: пишем упрощённый OpenGL своими руками"
 
